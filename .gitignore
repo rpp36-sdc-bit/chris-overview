@@ -1,3 +1,7 @@
+*.csv
+config.js
+sampleData/
+
 # Logs
 logs
 *.log
