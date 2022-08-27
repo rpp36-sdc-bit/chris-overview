@@ -41,4 +41,14 @@ describe('Testing different endpoints', () => {
         done();
       })
   })
+
+  // test("Test for products/id API",  done => {
+  //   request(app)
+  //   .get('/products/1')
+  //   .then(response => {
+  //     expect(response.text[0].id).toEqual(1)
+  //     done()
+  //   })
+  // })
 })
+
