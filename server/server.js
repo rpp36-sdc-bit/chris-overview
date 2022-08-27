@@ -12,6 +12,10 @@ const pool = new Pool ({
 
 // pool.connect()
 
+const formatStyles = () => {
+
+}
+
 app.use(express.json());
 
 app.get('/', (req, res) => {
@@ -40,13 +44,58 @@ app.get('/products/:id', (req, res) => {
 
 
 app.get('/products/:id/styles', (req, res) => {
+
+  let styles = []
+  let skus = []
+  let photos = []
+  let final = {}
+  let style_id = 0;
+
   pool.query(`SELECT * FROM styles
   WHERE product_id = ${req.params.id}`, (err, data) => {
     if (err) {
       throw err
     }
-    console.log('this is the data i recieve for the styles', data.rows)
-    res.status(200).json(data.rows)
+    styles = data.rows;
+    res.status(200)
+  })
+  pool.query(`SELECT * FROM skus
+  WHERE style_id = ${req.params.id}`, (err, data) => {
+    if (err) {
+      throw err;
+    } else {
+      skus = data.rows;
+      style_id = skus[0].style_id;
+      pool.query(`SELECT * FROM photos
+       WHERE style_id = ${req.params.id}`, (err, data) => {
+        if (err) {
+         throw err;
+        } else {
+          photos = data.rows;
+          console.log('these are the styles', styles);
+          console.log('these are the skuses', skus);
+          console.log('these are the photos', photos);
+          styles.forEach((item) => {
+            for (var i = 0; i < skus.length; i++) {
+              let curr = skus[i];
+              for (var j = 0; j < photos.length; j++) {
+                let currPic = photos[j];
+                if (item.style_id === currPic.id) {
+                  item['photos'] = currPic;
+                }
+                if (item.style_id === curr.id) {
+                  item['skus'] = curr;
+                }
+              }
+            }
+          })
+         final['product_id'] = req.params.id;
+         final['results'] = styles;
+        //  console.log('this is the final obj', final);
+         res.status(200).send(final);
+       }
+     })
+    }
   })
 })
 
