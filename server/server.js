@@ -12,96 +12,94 @@ const pool = new Pool ({
 
 // pool.connect()
 
-const formatStyles = () => {
-
-}
-
 app.use(express.json());
 
 app.get('/', (req, res) => {
   res.status(200).send('Hello World')
 })
 
+// API QUERY FOR PRODUCTS LIMIT 5
 app.get('/products', (req, res) => {
   pool.query(`SELECT * FROM products LIMIT 5`, (err, results) => {
     if (err) {
-      throw err
+      res.sendStatus(500);
     }
     res.status(200).json(results.rows)
   })
 });
 
+// API QUERY FOR SINGLE PRODUCT
 app.get('/products/:id', (req, res) => {
   let final = {}
   pool.query(`SELECT * FROM aggregatedProducts
     WHERE id = ${req.params.id}`, (err, data) => {
     if (err) {
-      throw err
+      res.sendStatus(500);
     }
-    res.status(200).json(data.rows)
+    res.status(200).json(data.rows[0])
   })
 })
 
-
-app.get('/products/:id/styles', (req, res) => {
-
-  let styles = []
-  let skus = []
+// API QUERY FOR STYLES
+app.get('/products/:id/styles', async (req, res) => {
+  let skus = {}
   let photos = []
   let final = {}
-  let style_id = 0;
+  let photoArray = []
 
-  pool.query(`SELECT * FROM styles
-  WHERE product_id = ${req.params.id}`, (err, data) => {
-    if (err) {
-      throw err
-    }
-    styles = data.rows;
-    res.status(200)
+  const styles1 = await pool.query(`SELECT * FROM styles WHERE product_id = ${req.params.id}`)
+  let styles = styles1.rows
+  const allStyleIds = styles1.rows.map(style => style.style_id)
+
+  const skuProms = allStyleIds.map(id => pool.query(`SELECT * FROM skus WHERE style_id = ${id}`))
+  const skusData = await Promise.all(skuProms)
+  const skusMap = {}
+  skusData.forEach((item, i) => {
+    skusMap[allStyleIds[i]] = item.rows;
   })
-  pool.query(`SELECT * FROM skus
-  WHERE style_id = ${req.params.id}`, (err, data) => {
-    if (err) {
-      throw err;
+
+  const photoProms = allStyleIds.map(id => pool.query(`SELECT * FROM photos WHERE style_id = ${id}`))
+  const photoData = await Promise.all(photoProms)
+  const photoMap = {}
+  photoData.forEach((item, i) => {
+    photoMap[allStyleIds[i]] = item.rows;
+  })
+
+    styles.forEach(item => {
+      const photos = photoMap[item.style_id]
+      item.photos = photos.map(photo => ({
+        'thumbnail_url': photo.thumbnail_url,
+        'url': photo.url
+      }))
+      const skus = skusMap[item.style_id]
+      const skusObj = {}
+      skus.forEach(sku => skusObj[sku.id] = {
+        quantity: sku.quantity,
+        size: sku.size
+      })
+      item.skus = skusObj;
+    })
+
+    final['product_id'] = req.params.id;
+    final['results'] = styles;
+    if (!final.results.length) {
+      final.results = null;
+      res.sendStatus(500)
     } else {
-      skus = data.rows;
-      style_id = skus[0].style_id;
-      pool.query(`SELECT * FROM photos
-       WHERE style_id = ${req.params.id}`, (err, data) => {
-        if (err) {
-         throw err;
-        } else {
-          photos = data.rows;
-          console.log('these are the styles', styles);
-          console.log('these are the skuses', skus);
-          console.log('these are the photos', photos);
-          styles.forEach((item) => {
-            for (var i = 0; i < skus.length; i++) {
-              let curr = skus[i];
-              for (var j = 0; j < photos.length; j++) {
-                let currPic = photos[j];
-                if (item.style_id === currPic.id) {
-                  item['photos'] = currPic;
-                }
-                if (item.style_id === curr.id) {
-                  item['skus'] = curr;
-                }
-              }
-            }
-          })
-         final['product_id'] = req.params.id;
-         final['results'] = styles;
-        //  console.log('this is the final obj', final);
-         res.status(200).send(final);
-       }
-     })
+    res.status(200).send(final);
     }
-  })
 })
 
-app.get('/products/:id/related', (req, res) => { // still need to create a related prod schema
+ // DB QUERY FOR RELATED PRODUCTS
+app.get('/products/:id/related', (req, res) => {
+  let id;
+  if (req.query.productId === undefined) {
+    id = req.params.id;
+  } else {
+    id = req.query.productId;
+  }
   pool.query(`SELECT * FROM related
-  WHERE product_id = ${req.params.id}`, (err, data) => {
+  WHERE product_id = ${id}`, (err, data) => {
     if (err) {
       throw err
     } else {
@@ -114,8 +112,12 @@ app.get('/products/:id/related', (req, res) => { // still need to create a relat
   })
 });
 
-app.listen(3000, () => {
-  console.log('Listening on port 3000')
+app.listen(3001, () => {
+  console.log('Listening on port 3001')
 })
 
 module.exports = app;
+
+
+
+
