@@ -15,6 +15,8 @@ CREATE TABLE products (
 );
 -- import the csv data into products table
 \COPY products FROM '/Users/chrisbaharians/Desktop/data/product.csv' DELIMITER ',' CSV HEADER;
+DROP INDEX IF EXISTS idx_products_id;
+CREATE INDEX idx_products_id ON products USING btree(id);
 
 -- create features table
 DROP TABLE IF EXISTS features;
@@ -27,6 +29,8 @@ CREATE TABLE features (
 );
 -- import csv data into features table
 \COPY features FROM '/Users/chrisbaharians/Desktop/data/features (1).csv' DELIMITER ',' CSV HEADER;
+DROP INDEX IF EXISTS idx_features_id;
+CREATE INDEX idx_features_id ON features USING btree (feature_id);
 
 -- create styles table
 DROP TABLE IF EXISTS styles;
@@ -40,6 +44,10 @@ CREATE TABLE styles (
 );
 -- import csv data into photos table
 \COPY styles FROM '/Users/chrisbaharians/Desktop/data/styles.csv' DELIMITER ',' CSV HEADER;
+DROP INDEX IF EXISTS idx_styles_style_id;
+CREATE INDEX idx_styles_style_id ON styles USING btree(style_id);
+DROP INDEX IF EXISTS idx_styles_product_id;
+CREATE INDEX idx_styles_product_id ON styles USING btree(product_id);
 
 DROP TABLE IF EXISTS related;
 CREATE TABLE related (
@@ -50,6 +58,10 @@ CREATE TABLE related (
 );
 
 \COPY related FROM '/Users/chrisbaharians/Desktop/data/related.csv' DELIMITER ',' CSV HEADER;
+DROP INDEX IF EXISTS idx_related_product_id;
+CREATE INDEX idx_related_product_id ON related USING btree(product_id);
+DROP INDEX IF EXISTS idx_related_related_product_id;
+CREATE INDEX idx_related_related_product_id ON related USING btree (related_prod_id);
 
 -- create photos table
 DROP TABLE IF EXISTS photos;
@@ -61,6 +73,10 @@ CREATE TABLE photos (
 );
 
 \COPY photos FROM '/Users/chrisbaharians/Desktop/data/photos (1).csv' DELIMITER ',' CSV HEADER;
+DROP INDEX IF EXISTS idx_photos_id;
+CREATE INDEX idx_photos_id ON photos USING btree (id);
+DROP INDEX IF EXISTS idx_photos_style_id;
+CREATE INDEX idx_photos_style_id ON photos USING btree (style_id);
 
 --create skus table
 DROP TABLE IF EXISTS skus;
@@ -72,6 +88,8 @@ CREATE TABLE skus (
 );
 
 \COPY skus FROM '/Users/chrisbaharians/Desktop/data/skus.csv' DELIMITER ',' CSV HEADER;
+DROP INDEX IF EXISTS idx_skus_style_id;
+CREATE INDEX idx_skus_style_id ON skus USING btree (style_id);
 
 -- aggregated features schema for inserting data into agg prods
 DROP TABLE IF EXISTS agg_feat;
@@ -89,6 +107,9 @@ FROM
   products AS prod JOIN features AS f ON f.product_id = prod.id
 GROUP BY
   prod.id;
+
+DROP INDEX IF EXISTS idx_agg_feat_id;
+CREATE INDEX idx_agg_feat_id ON agg_feat USING btree(product_id);
 
 
 
@@ -110,6 +131,18 @@ SELECT
   p.id, p.name, p.slogan, p.description, p.category, p.default_price, af.features
 FROM
   products AS p JOIN agg_feat AS af ON af.product_id = p.id;
+
+DROP INDEX IF EXISTS idx_aggregatedProducts_id;
+CREATE INDEX idx_aggregatedProducts_id ON aggregatedProducts USING btree(id);
+DROP INDEX IF EXISTS idx_aggregatedProducts_category;
+CREATE INDEX idx_aggregatedProducts_category ON aggregatedProducts USING btree(category);
+DROP INDEX IF EXISTS idx_aggregatedProducts_name;
+CREATE INDEX idx_aggregatedProducts_name ON aggregatedProducts USING btree (name);
+
+
+ALTER TABLE styles ADD FOREIGN KEY (product_id) REFERENCES products (id);
+ALTER TABLE related ADD FOREIGN KEY (product_id) REFERENCES products(id);
+ALTER TABLE features ADD FOREIGN KEY (product_id) REFERENCES products(id);
 
 
 

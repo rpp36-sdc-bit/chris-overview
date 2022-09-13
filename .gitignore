@@ -1,6 +1,8 @@
 *.csv
 config.js
 sampleData/
+*.pem
+
 
 # Logs
 logs
