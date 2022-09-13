@@ -2,13 +2,15 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const Pool = require('pg').Pool;
+require('dotenv').config()
 const pool = new Pool ({
-  user: 'chrisbaharians',
-  host: 'localhost',
-  database: 'sdc_overview',
-  password: 'password',
-  port: 5432
+  user: process.env.USER,
+  host: process.env.HOST,
+  database: process.env.DATABASE,
+  password: process.env.PASSWORD,
+  port: process.env.port
 });
+
 
 // pool.connect()
 
@@ -101,7 +103,7 @@ app.get('/products/:id/related', (req, res) => {
   pool.query(`SELECT * FROM related
   WHERE product_id = ${id}`, (err, data) => {
     if (err) {
-      throw err
+      res.status(500).send(err)
     } else {
       let finalArr = [];
       data.rows.map(data => {
